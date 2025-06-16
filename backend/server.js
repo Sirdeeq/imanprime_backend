@@ -20,7 +20,14 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests from localhost and Netlify
+    if (!origin || origin === 'http://localhost:3000' || origin === 'https://imanprime.netlify.app') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
