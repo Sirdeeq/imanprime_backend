@@ -1,7 +1,7 @@
 import { validationResult } from 'express-validator';
 import Property from '../models/Property.js';
 import Agent from '../models/Agent.js';
-import { deleteImage, getPublicIdFromUrl } from '../config/cloudinary.js';
+import { deleteImage, getPublicIdFromUrl, getImageUrl, cloudinary } from '../config/cloudinary.js';
 
 // Create new property (Admin only)
 export const createProperty = async (req, res) => {
@@ -32,15 +32,24 @@ export const createProperty = async (req, res) => {
     // Handle file uploads if present
     if (req.files) {
       if (req.files.image) {
-        propertyData.image = req.files.image[0].path;
+        const imageResult = await cloudinary.v2.uploader.upload(req.files.image[0].path);
+        propertyData.image = getImageUrl(imageResult);
       }
+      
       if (req.files.images) {
-        propertyData.images = req.files.images.map(file => file.path);
+        const imageResults = await Promise.all(
+          req.files.images.map(file => cloudinary.v2.uploader.upload(file.path))
+        );
+        propertyData.images = imageResults.map(result => getImageUrl(result));
       }
+      
       if (req.files.floor_plans) {
-        propertyData.floor_plans = req.files.floor_plans.map((file, index) => ({
+        const floorPlanResults = await Promise.all(
+          req.files.floor_plans.map(file => cloudinary.v2.uploader.upload(file.path))
+        );
+        propertyData.floor_plans = floorPlanResults.map((result, index) => ({
           name: req.body.floor_plan_names?.[index] || `Floor Plan ${index + 1}`,
-          image: file.path
+          image: getImageUrl(result)
         }));
       }
     }
@@ -287,7 +296,8 @@ export const updateProperty = async (req, res) => {
           const publicId = getPublicIdFromUrl(existingProperty.image);
           if (publicId) await deleteImage(publicId);
         }
-        updateData.image = req.files.image[0].path;
+        const imageResult = await cloudinary.uploader.upload(req.files.image[0].path);
+        updateData.image = getImageUrl(imageResult);
       }
       
       if (req.files.images) {
@@ -298,7 +308,10 @@ export const updateProperty = async (req, res) => {
             if (publicId) await deleteImage(publicId);
           }
         }
-        updateData.images = req.files.images.map(file => file.path);
+        const imageResults = await Promise.all(
+          req.files.images.map(file => cloudinary.uploader.upload(file.path))
+        );
+        updateData.images = imageResults.map(result => getImageUrl(result));
       }
       
       if (req.files.floor_plans) {
@@ -309,9 +322,12 @@ export const updateProperty = async (req, res) => {
             if (publicId) await deleteImage(publicId);
           }
         }
-        updateData.floor_plans = req.files.floor_plans.map((file, index) => ({
+        const floorPlanResults = await Promise.all(
+          req.files.floor_plans.map(file => cloudinary.uploader.upload(file.path))
+        );
+        updateData.floor_plans = floorPlanResults.map((result, index) => ({
           name: req.body.floor_plan_names?.[index] || `Floor Plan ${index + 1}`,
-          image: file.path
+          image: getImageUrl(result)
         }));
       }
     }

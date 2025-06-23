@@ -17,6 +17,23 @@ dotenv.config();
 
 const app = express();
 
+// Request and Response logging middleware
+app.use((req, res, next) => {
+  console.log(`\n${req.method} ${req.originalUrl}`);
+  console.log('Request headers:', req.headers);
+  console.log('Request body:', req.body);
+  console.log('Request files:', req.files);
+  
+  // Log response
+  const originalSend = res.send;
+  res.send = function(body) {
+    console.log('Response body:', body);
+    originalSend.apply(res, arguments);
+  };
+  
+  next();
+});
+
 // Security middleware
 app.use(helmet());
 app.use(cors({

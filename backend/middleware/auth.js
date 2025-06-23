@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-
 // Verify JWT token
 export const authenticate = async (req, res, next) => {
   try {
@@ -33,23 +32,35 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
+
 // Check if user is admin
 export const requireAdmin = async (req, res, next) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Access denied. Admin privileges required.' 
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
       });
     }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized as an admin'
+      });
+    }
+
     next();
   } catch (error) {
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Authorization error.' 
+    console.error('Admin verification error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error verifying admin privileges'
     });
   }
 };
 
 // Combined middleware for admin authentication
 export const adminAuth = [authenticate, requireAdmin];
+
+// Export already defined above
